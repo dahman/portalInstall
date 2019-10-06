@@ -9,6 +9,11 @@ Write-Host "currentlocation is $currentlocation "
 $packagefolder = "$currentlocation\packages\"
 Write-Host "packagefolder is $packagefolder"
 
+# remove content of packagefolder. so that any folder created will be used
+if (Test-Path $packagefolder) {
+  Remove-Item -LiteralPath $packagefolder -Force -Recurse
+}
+
 # create a patch 
 #New-Item -ItemType Directory -Force -Path $packagefolder
 
@@ -24,6 +29,21 @@ $arg5 = '-y'
  
 & $CMD $arg1 $arg2 $arg3 $arg4 $arg5 | Out-Null
 
+$datapathtocreate = $currentlocation.tostring() + '\TDMPortalPatch' + $TDMVersion + '\data'
+
+# delete content of data folder
+$datatodelete = $datapathtocreate + '\*.war'
+if (Test-Path $datatodelete) { 
+   $stroutput = "deleting war files from " +  $datapathtocreate
+   Write-Host $stroutput
+   Remove-Item -Path $datatodelete -Force  -Recurse
+} else {
+   Write-Host "create folder $datapathtocreate"
+   # create a patch 
+   New-Item -ItemType Directory -Force -Path $datapathtocreate
+}
+#write-host "Press any key to continue..."
+#[void][System.Console]::ReadKey($true)
 
 $setupname = 'setup_CA Test Data Manager Portal' + $TDMVersion + '.exe'
 
@@ -41,32 +61,30 @@ $arg2 = $packagefolder
 $TDMmajorminor = '4.8'
 # if 4.8 then use folder 436D50A
 if ($TDMVersion.StartsWith("4.8")) {
-  $generatedfolder = '436D50A'
   $TDMmajorminor = '4.8'
 } elseif ($TDMVersion.StartsWith("4.7")) {
-  $generatedfolder = '436D50A'
   $TDMmajorminor = '4.7'
 } elseif ($TDMVersion.StartsWith("4.6")) {
-  $generatedfolder = '436D50A'
   $TDMmajorminor = '4.6'
 }
-$datapathtocreate = $currentlocation.tostring() + '\TDMPortalPatch' + $TDMVersion + '\data'
-$pathtocreate = $currentlocation.tostring() + '\TDMPortalPatch' + $TDMVersion
+$patchtocreate = $currentlocation.tostring() + '\TDMPortalPatch' + $TDMVersion
 
-Write-Host "create folder $datapathtocreate"
-# create a patch 
-New-Item -ItemType Directory -Force -Path $datapathtocreate
+# find the folder created under 
+$generatedfolder = Get-ChildItem $packagefolder -filter "???????" -Directory | % { $_.fullname }
+Write-Host "generated folder is $generatedfolder"
+
+
 
 Write-Host "copying war files to $datapathtocreate ..."
 # copy war files to data area for nsis
-$originalwarlocation = $packagefolder + $generatedfolder+'\tomcat\webapps\*.*'
+$originalwarlocation = $generatedfolder+'\tomcat\webapps\*.*'
 Copy-Item -Filter *.war -Path $originalwarlocation -Destination $datapathtocreate
 
 
 # create a file and add 
 #!define VERSION "4.8.105.0"
 #!define MAJORMINOR "4.8"
-$versionheader = $pathtocreate+'\version.nsh'
+$versionheader = $patchtocreate+'\version.nsh'
 
 #delete file firstentry
 if (Test-Path $versionheader) { 
@@ -84,9 +102,9 @@ Add-Content -Path $versionheader  -Value $secondentry -Force
 
 # copy the TDMPatch.nsi file to
 $nsifile = $currentlocation.tostring() + '\TDMpatch.nsi'
-Copy-Item -Path $nsifile -Destination $pathtocreate
+Copy-Item -Path $nsifile -Destination $patchtocreate
 
-Set-Location -Path $pathtocreate
+Set-Location -Path $patchtocreate
 
 $stroutput = "generating the installer $currentlocation\TDMPortalPatch{0}\TDMPortalPatchInstaller - {0}.exe..." -f $TDMVersion
 Write-Host $stroutput
@@ -97,5 +115,27 @@ $arg2 = 'TDMPatch.nsi'
 
 & $CMD $arg1 $arg2 | Out-Null
 
-Set-Location -Path $currentlocation
 
+$packageexename = "TDMPortalPatchInstaller - {0}.exe" -f $TDMVersion
+$packagezipname = "TDMPortalPatchInstaller - {0}.zip" -f $TDMVersion
+
+$outZippackage = $currentlocation.tostring() + '\' + $packagename
+
+$stroutput = "generating the zip file $currentlocation\TDMPortalPatch{0}\TDMPortalPatchInstaller - {0}.zip..." -f $TDMVersion
+Write-Host $stroutput
+# create a zip file 
+$CMD = 'C:\Program Files\7-Zip\7z.exe'
+$arg1 = 'a'
+$arg2 = $packagezipname
+$arg3 = $packageexename
+$arg4 = '-y'
+ 
+& $CMD $arg1 $arg2 $arg3 $arg4 | Out-Null
+
+
+$stroutput = "deleting the exe file $currentlocation\TDMPortalPatch{0}\TDMPortalPatchInstaller - {0}.exe..." -f $TDMVersion
+Write-Host $stroutput
+Remove-Item -Path $packageexename -Force
+
+
+Set-Location -Path $currentlocation
