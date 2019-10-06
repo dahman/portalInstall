@@ -1,3 +1,6 @@
+$ZIPPATH = 'C:\Program Files\7-Zip\7z.exe'
+$NSISPATH = 'C:\Program Files (x86)\NSIS\Bin\makensis.exe'
+
 $TDMZipfullpath=$args[0]
 #$TDMZip = 'TDMWeb-4.8.111.0.zip' 
 
@@ -20,7 +23,7 @@ if (Test-Path $packagefolder) {
 Write-Host "unzipping $TDMZipfullpath ..."
 $outputlocation = '-o'+$packagefolder
 #unzip 'TDMWeb-4.8.111.0.zip' to extract setup.....exe in D:\apps\nsisinstall\packages
-$CMD = 'C:\Program Files\7-Zip\7z.exe'
+$CMD = $ZIPPATH
 $arg1 = 'e'
 $arg2 = $TDMZipfullpath
 $arg3 = $outputlocation
@@ -109,7 +112,7 @@ Set-Location -Path $patchtocreate
 $stroutput = "generating the installer $currentlocation\TDMPortalPatch{0}\TDMPortalPatchInstaller - {0}.exe..." -f $TDMVersion
 Write-Host $stroutput
 #makensis.exe /X"SetCompressor /FINAL lzma" /LICENSE TDMPatch.nsi
-$CMD = 'C:\Program Files (x86)\NSIS\Bin\makensis.exe'
+$CMD = $NSISPATH
 $arg1 = '/LICENSE'
 $arg2 = 'TDMPatch.nsi'
 
@@ -124,7 +127,7 @@ $outZippackage = $currentlocation.tostring() + '\' + $packagename
 $stroutput = "generating the zip file $currentlocation\TDMPortalPatch{0}\TDMPortalPatchInstaller - {0}.zip..." -f $TDMVersion
 Write-Host $stroutput
 # create a zip file 
-$CMD = 'C:\Program Files\7-Zip\7z.exe'
+$CMD = $ZIPPATH
 $arg1 = 'a'
 $arg2 = $packagezipname
 $arg3 = $packageexename
